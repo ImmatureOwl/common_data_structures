@@ -77,12 +77,17 @@ SetNode *set_insert(SetTable *table, cString *key, const size_t key_len)
     return new_item;
 }
 
+size_t get_index(SetTable *table, cString *key, const size_t key_len)
+{
+    size_t hash = djb33x_hash(key, key_len);
+    return hash % table->hashmap_size;
+}
+
 //Returns the node previous to the one searched (use node->next for actual node)
 SetNode *set_search_key_prev(SetTable *table, cString *key, const size_t key_len)
 {
-    size_t hash = djb33x_hash(key, key_len);
-    size_t index = hash % table->hashmap_size;
-    SetNode *head = table->nodes[index];
+    
+    SetNode *head = table->nodes[get_index(table, key, key_len)];
     SetNode *previous_item = NULL;
     if (!head) return NULL;
     while(head->key != key)
@@ -104,6 +109,7 @@ SetNode *set_remove_key(SetTable *table, cString *key, const size_t key_len)
     SetNode *prev_item = set_search_key_prev(table, key, key_len);
     SetNode *item = prev_item->next;
     prev_item->next = item->next;
+    table->nodes[get_index(table, key, key_len)] = item->next;
     item->next = NULL;
     return item;
 }
