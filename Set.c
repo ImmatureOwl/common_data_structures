@@ -83,35 +83,61 @@ size_t get_index(SetTable *table, cString *key, const size_t key_len)
     return hash % table->hashmap_size;
 }
 
-//Returns the node previous to the one searched (use node->next for actual node)
-SetNode *set_search_key_prev(SetTable *table, cString *key, const size_t key_len)
+SetNode *get_index_head(SetTable *table, cString *key, const size_t key_len)
 {
-    
-    SetNode *head = table->nodes[get_index(table, key, key_len)];
-    SetNode *previous_item = NULL;
-    if (!head) return NULL;
-    while(head->key != key)
-    {
-        previous_item = head;
-        head = head->next;
-        if (!head->next) return NULL; //end of cycle
-    }
-    return previous_item; //by returning the item prior to the one searched for, we gain additional information without losing data
+    size_t hash = djb33x_hash(key, key_len);
+    size_t index = hash % table->hashmap_size;
+    return table->nodes[index];
 }
 
 SetNode *set_search_key(SetTable *table, cString *key, const size_t key_len)
 {
-    return set_search_key_prev(table, key, key_len)->next;
+    SetNode *head = get_index_head(table, key, key_len);
+    if (!head) return NULL;
+    if (head->key == key)
+    {
+        return head;
+    }
+    if (!head->next)
+    {
+        return NULL;
+    }
+    while(head->key != key)
+    {
+        head = head->next;
+        if (!head->next)
+        {
+            return NULL; 
+        }//end of cycle
+    }
+    return head;
 }
 
 SetNode *set_remove_key(SetTable *table, cString *key, const size_t key_len)
 {
-    SetNode *prev_item = set_search_key_prev(table, key, key_len);
-    SetNode *item = prev_item->next;
-    prev_item->next = item->next;
-    table->nodes[get_index(table, key, key_len)] = item->next;
-    item->next = NULL;
-    return item;
+    SetNode *head = get_index_head(table, key, key_len);
+    if (!head) return NULL;
+    SetNode *previous_item = NULL;
+    if (head->key == key)
+    {
+        return head;
+    }
+    if (!head->next)
+    {
+        return NULL;
+    }
+    while(head->key != key)
+    {
+        previous_item = head;
+        head = head->next;
+        if (!head->next)
+        {
+            return NULL; 
+        }//end of cycle
+    }
+    previous_item->next = head->next;
+    head->next = NULL;
+    return head;
 }
 
 int main()
